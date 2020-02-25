@@ -1,5 +1,6 @@
 import argparse
 import dateparser
+import datetime
 import logging
 import praw
 import sys
@@ -15,10 +16,13 @@ def print_item(item):
         subreddit_cache[item.subreddit_id] = item.subreddit.display_name
     try:
         url = "https://www.reddit.com/comments/%s/_/%s/" % (item.link_id.replace("t3_", ""), item.id)
-        print("%s\nr/%s %s commented: %s" % (url, subreddit_cache[item.subreddit_id], item.author, item.body))
+        action = "commented"
+        content = item.body
     except AttributeError:
         url = "https://www.reddit.com/%s/" % item.id
-        print("%s\nr/%s %s posted: %s" % (url, subreddit_cache[item.subreddit_id], item.author, item.selftext))
+        action = "posted"
+        content = item.selftext
+    print("%s %s\nr/%s %s %s: %s" % (datetime.datetime.fromtimestamp(item.created_utc).isoformat(), url, subreddit_cache[item.subreddit_id], item.author, action, content))
     print("==================")
 
 
