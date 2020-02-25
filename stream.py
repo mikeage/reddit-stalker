@@ -1,8 +1,9 @@
-import praw
-import time
 import argparse
+import dateparser
 import logging
+import praw
 import sys
+import time
 
 subreddit_cache = {}
 
@@ -24,7 +25,6 @@ def print_item(item):
 
 def main(include_old_actions, follow_me):
 
-    start_time = time.time() - 3600
     try:
         reddit = praw.Reddit('bot')
     except praw.exceptions.ClientException:
@@ -38,13 +38,19 @@ def main(include_old_actions, follow_me):
     followings.sort(key=str.lower)
     logging.info("followings = %s", followings)
 
+    if include_old_actions:
+        start_time = dateparser.parse(include_old_actions).timestamp()
+        skip_existing = False
+    else:
+        skip_existing = True
+
     # Create streams for comments and submissions for each following user
-    streams = [praw.models.Redditor(reddit, name=following).stream.comments(skip_existing=not include_old_actions, pause_after=-1) for following in followings] + [praw.models.Redditor(reddit, name=following).stream.submissions(skip_existing=not include_old_actions, pause_after=-1) for following in followings]
+    streams = [praw.models.Redditor(reddit, name=following).stream.comments(skip_existing=skip_existing, pause_after=-1) for following in followings] + [praw.models.Redditor(reddit, name=following).stream.submissions(skip_existing=skip_existing, pause_after=-1) for following in followings]
     logging.debug("Streams are %s", streams)
 
     # For the initial stream, sort the comments and submissions by time
     if include_old_actions:
-        logging.info("Getting old items")
+        logging.info("Getting old items since %s", include_old_actions)
         all_items = []
         for stream in streams:
             logging.debug("Looking at stream %s", stream)
@@ -73,7 +79,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-v', '--verbose', action='count', default=0, help="Print extra traces (INFO level). Use twice to print DEBUG prints")
-    parser.add_argument("-o", "--include-old-actions", help="Include old comments and submissions", action="store_true")
+    parser.add_argument("-o", "--include-old-actions", help="Include old comments and submissions (format can be absolute or relative)", metavar="'time reference'")
     parser.add_argument("-m", "--follow-me", help="Include your own comments and submissions", action="store_true")
     parsed_args = parser.parse_args()
 
