@@ -2,6 +2,7 @@ import praw
 import time
 import argparse
 import logging
+import sys
 
 subreddit_cache = {}
 
@@ -24,7 +25,11 @@ def print_comment(comment):
 def main(include_old_comments):
 
     start_time = time.time() - 3600
-    reddit = praw.Reddit('bot')
+    try:
+        reddit = praw.Reddit('bot')
+    except praw.exceptions.ClientException:
+        logging.error("Can't connect to reddit via PRAW. Did you set up a praw.ini?")
+        sys.exit(1)
 
     logging.info("Getting a list of friends")
     friends = [friend.display_name.replace("u_", "") for friend in reddit.user.subreddits() if friend.display_name.startswith("u_")]
