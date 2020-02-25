@@ -3,7 +3,6 @@ import dateparser
 import logging
 import praw
 import sys
-import time
 
 subreddit_cache = {}
 
@@ -23,8 +22,7 @@ def print_item(item):
     print("==================")
 
 
-def main(include_old_actions, follow_me):
-
+def main(include_old_actions, follow_me):  # pylint: disable=too-many-branches
     try:
         reddit = praw.Reddit('bot')
     except praw.exceptions.ClientException:
