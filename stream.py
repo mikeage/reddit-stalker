@@ -22,7 +22,7 @@ def print_item(item):
     print("==================")
 
 
-def main(include_old_actions):
+def main(include_old_actions, follow_me):
 
     start_time = time.time() - 3600
     try:
@@ -33,7 +33,9 @@ def main(include_old_actions):
 
     logging.info("Getting a list of users you are following")
     followings = [following.display_name.replace("u_", "") for following in reddit.user.subreddits() if following.display_name.startswith("u_")]
-    followings.append(reddit.user.me().name)
+    if follow_me:
+        followings.append(reddit.user.me().name)
+    followings.sort(key=str.lower)
     logging.info("followings = %s", followings)
 
     # Create streams for comments and submissions for each following user
@@ -72,9 +74,10 @@ if __name__ == '__main__':
 
     parser.add_argument('-v', '--verbose', action='count', default=0, help="Print extra traces (INFO level). Use twice to print DEBUG prints")
     parser.add_argument("-o", "--include-old-actions", help="Include old comments and submissions", action="store_true")
+    parser.add_argument("-m", "--follow-me", help="Include your own comments and submissions", action="store_true")
     parsed_args = parser.parse_args()
 
     levels = [logging.WARNING, logging.INFO, logging.DEBUG]
     level = levels[min(len(levels) - 1, parsed_args.verbose)]
     logging.basicConfig(level=level)
-    main(parsed_args.include_old_actions)
+    main(parsed_args.include_old_actions, parsed_args.follow_me)
