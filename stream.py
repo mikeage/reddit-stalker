@@ -5,11 +5,11 @@ import logging
 import praw
 import sys
 
-subreddit_cache = {}
+
+logger = logging.getLogger(__name__)
 
 
-def print_item(item):
-    global subreddit_cache  # pylint: disable=global-statement
+def print_item(item, subreddit_cache):
     try:
         assert subreddit_cache[item.subreddit_id]
     except KeyError:
@@ -27,18 +27,20 @@ def print_item(item):
 
 
 def main(include_old_actions, follow_me):  # pylint: disable=too-many-branches
+
     try:
         reddit = praw.Reddit('bot')
     except praw.exceptions.ClientException:
-        logging.error("Can't connect to reddit via PRAW. Did you set up a praw.ini?")
+        logger.error("Can't connect to reddit via PRAW. Did you set up a praw.ini?")
         sys.exit(1)
 
-    logging.info("Getting a list of users you are following")
+    subreddit_cache = {}
+    logger.info("Getting a list of users you are following")
     followings = [following.display_name.replace("u_", "") for following in reddit.user.subreddits() if following.display_name.startswith("u_")]
     if follow_me:
         followings.append(reddit.user.me().name)
     followings.sort(key=str.lower)
-    logging.info("followings = %s", followings)
+    logger.info("followings = %s", followings)
 
     if include_old_actions:
         start_time = dateparser.parse(include_old_actions).timestamp()
@@ -48,33 +50,33 @@ def main(include_old_actions, follow_me):  # pylint: disable=too-many-branches
 
     # Create streams for comments and submissions for each following user
     streams = [praw.models.Redditor(reddit, name=following).stream.comments(skip_existing=skip_existing, pause_after=-1) for following in followings] + [praw.models.Redditor(reddit, name=following).stream.submissions(skip_existing=skip_existing, pause_after=-1) for following in followings]
-    logging.debug("Streams are %s", streams)
+    logger.debug("Streams are %s", streams)
 
     # For the initial stream, sort the comments and submissions by time
     if include_old_actions:
-        logging.info("Getting old items since %s", include_old_actions)
+        logger.info("Getting old items since %s", include_old_actions)
         all_items = []
         for stream in streams:
-            logging.debug("Looking at stream %s", stream)
+            logger.debug("Looking at stream %s", stream)
             for item in stream:
                 if item is not None:
                     if item.created_utc >= start_time:
-                        logging.debug("Adding item %s", item)
+                        logger.debug("Adding item %s", item)
                         all_items.append(item)
                 else:
                     break
-        logging.info("Finished")
+        logger.info("Finished")
         for item in sorted(all_items, key=lambda item: item.created_utc):
-            print_item(item)
+            print_item(item, subreddit_cache)
 
-    logging.info("Starting streaming")
+    logger.info("Starting streaming")
     while True:
         for stream in streams:
             for item in stream:
                 if item is None:
-                    logging.debug("No items for %s", stream)
+                    logger.debug("No items for %s", stream)
                     break
-                print_item(item)
+                print_item(item, subreddit_cache)
 
 
 if __name__ == '__main__':
