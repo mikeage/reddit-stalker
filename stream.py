@@ -90,4 +90,5 @@ if __name__ == '__main__':
     levels = [logging.WARNING, logging.INFO, logging.DEBUG]
     level = levels[min(len(levels) - 1, parsed_args.verbose)]
     logging.basicConfig(level=level)
+    logging.getLogger('prawcore').setLevel(logging.ERROR)
     main(parsed_args.include_old_actions, parsed_args.follow_me)
