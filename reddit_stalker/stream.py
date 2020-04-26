@@ -4,6 +4,7 @@ import datetime
 import logging
 import praw
 import sys
+from ._version import get_versions
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,19 @@ def print_item(item, subreddit_cache):
     print("==================")
 
 
-def main(include_old_actions, follow_me):  # pylint: disable=too-many-branches
+def main():  # pylint: disable=too-many-branches
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-v', '--verbose', action='count', default=0, help="Print extra traces (INFO level). Use twice to print DEBUG prints")
+    parser.add_argument("-o", "--include-old-actions", help="Include old comments and submissions (format can be absolute or relative)", metavar="'time reference'")
+    parser.add_argument("-m", "--follow-me", help="Include your own comments and submissions", action="store_true")
+    parser.add_argument('-V', '--version', action='version', version='%(prog)s {version}'.format(version=get_versions()["version"]))
+    args = parser.parse_args()
+
+    levels = [logging.WARNING, logging.INFO, logging.DEBUG]
+    level = levels[min(len(levels) - 1, args.verbose)]
+    logging.basicConfig(level=level)
+    logging.getLogger('prawcore').setLevel(logging.ERROR)
 
     try:
         reddit = praw.Reddit('bot')
@@ -37,13 +50,13 @@ def main(include_old_actions, follow_me):  # pylint: disable=too-many-branches
     subreddit_cache = {}
     logger.info("Getting a list of users you are following")
     followings = [following.display_name.replace("u_", "") for following in reddit.user.subreddits() if following.display_name.startswith("u_")]
-    if follow_me:
+    if args.follow_me:
         followings.append(reddit.user.me().name)
     followings.sort(key=str.lower)
     logger.info("followings = %s", followings)
 
-    if include_old_actions:
-        start_time = dateparser.parse(include_old_actions).timestamp()
+    if args.include_old_actions:
+        start_time = dateparser.parse(args.include_old_actions).timestamp()
         skip_existing = False
     else:
         skip_existing = True
@@ -53,8 +66,8 @@ def main(include_old_actions, follow_me):  # pylint: disable=too-many-branches
     logger.debug("Streams are %s", streams)
 
     # For the initial stream, sort the comments and submissions by time
-    if include_old_actions:
-        logger.info("Getting old items since %s", include_old_actions)
+    if args.include_old_actions:
+        logger.info("Getting old items since %s", args.include_old_actions)
         all_items = []
         for stream in streams:
             logger.debug("Looking at stream %s", stream)
@@ -80,15 +93,4 @@ def main(include_old_actions, follow_me):  # pylint: disable=too-many-branches
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('-v', '--verbose', action='count', default=0, help="Print extra traces (INFO level). Use twice to print DEBUG prints")
-    parser.add_argument("-o", "--include-old-actions", help="Include old comments and submissions (format can be absolute or relative)", metavar="'time reference'")
-    parser.add_argument("-m", "--follow-me", help="Include your own comments and submissions", action="store_true")
-    parsed_args = parser.parse_args()
-
-    levels = [logging.WARNING, logging.INFO, logging.DEBUG]
-    level = levels[min(len(levels) - 1, parsed_args.verbose)]
-    logging.basicConfig(level=level)
-    logging.getLogger('prawcore').setLevel(logging.ERROR)
-    main(parsed_args.include_old_actions, parsed_args.follow_me)
+    main()
