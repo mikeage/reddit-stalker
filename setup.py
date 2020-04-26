@@ -15,6 +15,7 @@ setup(name='reddit-stalker',
       },
       install_requires=[
           'praw',
+          'colorama',
           'dateparser'
       ],
       zip_safe=False)

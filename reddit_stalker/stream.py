@@ -5,7 +5,7 @@ import logging
 import praw
 import sys
 from ._version import get_versions
-
+from colorama import init, Fore, Style
 
 logger = logging.getLogger(__name__)
 
@@ -14,20 +14,27 @@ def print_item(item, subreddit_cache):
     try:
         assert subreddit_cache[item.subreddit_id]
     except KeyError:
-        subreddit_cache[item.subreddit_id] = item.subreddit.display_name
+        subreddit_cache[item.subreddit_id] = item.subreddit_name_prefixed
     try:
         url = "https://www.reddit.com/comments/%s/_/%s/" % (item.link_id.replace("t3_", ""), item.id)
         action = "commented"
         content = item.body
     except AttributeError:
         url = "https://www.reddit.com/%s/" % item.id
-        action = "posted"
-        content = item.selftext
-    print("%s %s\nr/%s %s %s: %s" % (datetime.datetime.fromtimestamp(item.created_utc).isoformat(), url, subreddit_cache[item.subreddit_id], item.author, action, content))
+        try:
+            action = "crossposted from " + Fore.BLUE + item.crosspost_parent_list[0]['subreddit_name_prefixed'] + Fore.RESET
+        except (AttributeError, KeyError):
+            action = "posted"
+        content = item.title
+        if item.selftext:
+            content = content + "\n" + item.selftext
+    print(Style.DIM + datetime.datetime.fromtimestamp(item.created_utc).isoformat() + Style.RESET_ALL + Fore.BLUE + " " + url + Fore.RESET + "\n" + Fore.BLUE + subreddit_cache[item.subreddit_id] + Fore.RESET + " " + Fore.RED + str(item.author) + Fore.RESET + " " + action + ": " + content)
     print("==================")
 
 
 def main():  # pylint: disable=too-many-branches
+    init()
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-v', '--verbose', action='count', default=0, help="Print extra traces (INFO level). Use twice to print DEBUG prints")
