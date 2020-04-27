@@ -30,9 +30,11 @@ def print_item(item, subreddit_cache):
             content = content + "\n" + item.selftext
     print(Style.DIM + datetime.datetime.fromtimestamp(item.created_utc).isoformat() + Style.RESET_ALL + Fore.BLUE + " " + url + Fore.RESET + "\n" + Fore.BLUE + subreddit_cache[item.subreddit_id] + Fore.RESET + " " + Fore.RED + str(item.author) + Fore.RESET + " " + action + ": " + content)
     print("==================")
+    with open('/tmp/reddit_stalker_last_timestamp', 'w') as f:
+        f.write(str(item.created_utc))
 
 
-def main():  # pylint: disable=too-many-branches
+def main():  # pylint: disable=too-many-branches,too-many-statements
     init()
 
     parser = argparse.ArgumentParser()
@@ -62,14 +64,21 @@ def main():  # pylint: disable=too-many-branches
     followings.sort(key=str.lower)
     logger.info("followings = %s", followings)
 
+    include_old = False
     if args.include_old_actions:
-        start_time = dateparser.parse(args.include_old_actions).timestamp()
-        skip_existing = False
-    else:
-        skip_existing = True
+        if args.include_old_actions == "auto":
+            try:
+                with open('/tmp/reddit_stalker_last_timestamp', 'r') as f:
+                    start_time = dateparser.parse(f.readline()).timestamp()
+                    include_old = True
+            except Exception as ex:  # pylint: disable=broad-except
+                logger.warning("Couldn't get last timestamp: %s", ex)
+        else:
+            start_time = dateparser.parse(args.include_old_actions).timestamp()
+            include_old = True
 
     # Create streams for comments and submissions for each following user
-    streams = [praw.models.Redditor(reddit, name=following).stream.comments(skip_existing=skip_existing, pause_after=-1) for following in followings] + [praw.models.Redditor(reddit, name=following).stream.submissions(skip_existing=skip_existing, pause_after=-1) for following in followings]
+    streams = [praw.models.Redditor(reddit, name=following).stream.comments(skip_existing=not include_old, pause_after=-1) for following in followings] + [praw.models.Redditor(reddit, name=following).stream.submissions(skip_existing=not include_old, pause_after=-1) for following in followings]
     logger.debug("Streams are %s", streams)
 
     # For the initial stream, sort the comments and submissions by time
