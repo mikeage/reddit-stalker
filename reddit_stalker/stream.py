@@ -42,6 +42,8 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
     parser.add_argument('-v', '--verbose', action='count', default=0, help="Print extra traces (INFO level). Use twice to print DEBUG prints")
     parser.add_argument("-o", "--include-old-actions", help="Include old comments and submissions (format can be absolute or relative)", metavar="'time reference'")
     parser.add_argument("-m", "--follow-me", help="Include your own comments and submissions", action="store_true")
+    parser.add_argument("-f", "--followers", help="Automatically track all users you're following", action="store_true")
+    parser.add_argument("-u", "--users", nargs="+", help="List of users to follow in addition to the users you follow (aka stealth mode)")
     parser.add_argument('-V', '--version', action='version', version='%(prog)s {version}'.format(version=get_versions()["version"]))
     args = parser.parse_args()
 
@@ -57,10 +59,16 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
         sys.exit(1)
 
     subreddit_cache = {}
-    logger.info("Getting a list of users you are following")
-    followings = [following.display_name.replace("u_", "") for following in reddit.user.subreddits() if following.display_name.startswith("u_")]
+    followings = []
+    assert args.followers or args.users
+
+    if args.followers:
+        logger.info("Getting a list of users you are following")
+        followings.extend([following.display_name.replace("u_", "") for following in reddit.user.subreddits() if following.display_name.startswith("u_")])
+    followings.extend(args.users)
     if args.follow_me:
         followings.append(reddit.user.me().name)
+
     followings.sort(key=str.lower)
     logger.info("followings = %s", followings)
 
