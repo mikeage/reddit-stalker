@@ -68,6 +68,7 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
     parser.add_argument("-m", "--follow-me", help="Include your own comments and submissions", action="store_true")
     parser.add_argument("-f", "--followers", help="Automatically track all users you're following", action="store_true")
     parser.add_argument("-u", "--users", nargs="+", help="List of users to follow in addition to the users you follow (aka stealth mode)")
+    parser.add_argument("-x", "--exclude-subreddits", metavar="subreddit", nargs="+", help="List of subreddits to exclude (in case you monitor r/foo/comments, for example)")
     parser.add_argument('-V', '--version', action='version', version='%(prog)s {version}'.format(version=get_versions()["version"]))
     args = parser.parse_args()
 
@@ -150,6 +151,8 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
             logger.debug("Looking at stream %s", stream)
             for item in stream:
                 if item is not None:
+                    if item.subreddit.display_name.lower() in map(str.lower, args.exclude_subreddits):
+                        continue
                     if item.created_utc >= start_time:
                         logger.debug("Adding item %s", item)
                         all_items.append(item)
@@ -166,6 +169,8 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
                 if item is None:
                     logger.debug("No items for %s", stream)
                     break
+                if item.subreddit.display_name.lower() in map(str.lower, args.exclude_subreddits):
+                    continue
                 print_item(item, subreddit_cache)
 
 
