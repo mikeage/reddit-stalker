@@ -67,7 +67,7 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
     parser.add_argument("-o", "--include-old-actions", help="Include old comments and submissions (format can be absolute or relative)", metavar="'time reference'")
     parser.add_argument("-m", "--follow-me", help="Include your own comments and submissions", action="store_true")
     parser.add_argument("-f", "--followers", help="Automatically track all users you're following", action="store_true")
-    parser.add_argument("-u", "--users", nargs="+", help="List of users to follow in addition to the users you follow (aka stealth mode)")
+    parser.add_argument("-u", "--users", nargs="+", metavar="username", help="List of users to follow in addition to the users you follow (aka stealth mode)")
     parser.add_argument("-x", "--exclude-subreddits", metavar="subreddit", nargs="+", help="List of subreddits to exclude (in case you monitor r/foo/comments, for example)")
     parser.add_argument('-V', '--version', action='version', version='%(prog)s {version}'.format(version=get_versions()["version"]))
     args = parser.parse_args()
