@@ -3,9 +3,11 @@ import dateparser
 import datetime
 import logging
 import praw
+from prawcore.exceptions import PrawcoreException
 import sys
 import random
 import socket
+import time
 from ._version import get_versions
 from colorama import init, Fore, Style
 
@@ -163,15 +165,22 @@ def main():  # pylint: disable=too-many-branches,too-many-statements
             print_item(item, subreddit_cache)
 
     logger.info("Starting streaming")
-    while True:
-        for stream in streams:
-            for item in stream:
-                if item is None:
-                    logger.debug("No items for %s", stream)
-                    break
-                if item.subreddit.display_name.lower() in map(str.lower, args.exclude_subreddits):
-                    continue
-                print_item(item, subreddit_cache)
+    running = True
+    while running:
+        try:
+            for stream in streams:
+                for item in stream:
+                    if item is None:
+                        logger.debug("No items for %s", stream)
+                        break
+                    if item.subreddit.display_name.lower() in map(str.lower, args.exclude_subreddits):
+                        continue
+                    print_item(item, subreddit_cache)
+        except KeyboardInterrupt:
+            running = False
+        except PrawcoreException:
+            logger.info("Sleeping before reconnection...")
+            time.sleep(5)
 
 
 if __name__ == '__main__':
